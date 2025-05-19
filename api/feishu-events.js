@@ -4,11 +4,11 @@ import { chatWithGpt } from '../utils/openai.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    console.warn('收到非POST请求，拒绝处理');
     return res.status(405).send('Method Not Allowed');
   }
 
   const body = req.body;
+
   const type = body.header?.event_type || '';
   const challenge = body.challenge || '';
 
@@ -22,8 +22,7 @@ export default async function handler(req, res) {
   if (type === 'im.message.receive_v1') {
     const event = body.event;
 
-    if (!event?.message) {
-      console.log('事件体缺少 message 字段，忽略');
+    if (!event || !event.message) {
       return res.status(200).send('ok');
     }
 
@@ -33,49 +32,52 @@ export default async function handler(req, res) {
     try {
       text = JSON.parse(msg.content).text || '';
     } catch (e) {
-      console.error('消息内容解析失败', e);
+      console.error('消息内容解析失败:', e);
       text = '[消息格式异常]';
     }
     console.log('收到消息文本:', text);
 
+    let reply = '';
     try {
-      const reply = await chatWithGpt(text);
-      console.log('ChatGPT 回复:', reply);
-
-      const token = await getTenantAccessToken();
-      console.log('Token 前10字符:', token.slice(0, 10), '...');
-
-      const payload = {
-        receive_id_type: 'chat_id',  // 必须是字符串，且大小写准确
-        receive_id: msg.chat_id,
-        msg_type: 'text',
-        content: JSON.stringify({ text: reply }),
-      };
-      console.log('发送飞书消息请求体:', JSON.stringify(payload));
-
-      const sendRes = await fetch('https://open.feishu.cn/open-apis/im/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!sendRes.ok) {
-        const errText = await sendRes.text();
-        console.error('发送消息失败，状态码:', sendRes.status, '响应:', errText);
-      } else {
-        console.log('消息发送成功');
-      }
+      reply = await chatWithGpt(text);
     } catch (err) {
-      console.error('处理消息异常:', err);
+      console.error('ChatGPT请求失败:', err);
+      reply = 'ChatGPT 暂时无法回答，请稍后再试。';
+    }
+    console.log('ChatGPT 回复:', reply);
+
+    // 获取飞书 token
+    const token = await getTenantAccessToken();
+
+    // 注意这里body结构，保证无任何多余空格或类型错误
+    const payload = {
+      receive_id_type: 'chat_id',    // **必须字符串且全部小写**
+      receive_id: msg.chat_id,
+      msg_type: 'text',
+      content: JSON.stringify({ text: reply }),
+    };
+
+    console.log('发送飞书消息请求体:', JSON.stringify(payload));
+
+    // 发送请求
+    const sendRes = await fetch('https://open.feishu.cn/open-apis/im/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',  // **必须准确**
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!sendRes.ok) {
+      const errText = await sendRes.text();
+      console.error('发送飞书消息失败，状态码:', sendRes.status, '响应:', errText);
+    } else {
+      console.log('消息发送成功');
     }
 
     return res.status(200).send('ok');
   }
 
-  console.log('非关注事件或格式异常，忽略');
   return res.status(200).send('ok');
 }
-
