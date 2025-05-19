@@ -6,7 +6,7 @@ export async function chatWithGpt(prompt) {
     const response = await axios.post(
       'https://api.openai.com/v1/chat/completions',
       {
-        model: 'gpt-3.5',
+        model: 'gpt-3.5-turbo',  // 修改为正确模型名
         messages: [{ role: 'user', content: prompt }]
       },
       {
