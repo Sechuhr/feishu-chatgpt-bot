@@ -1,5 +1,4 @@
-// api/feishu-events.js
-import fetch from 'node-fetch';
+// api/feishu-events.jsss
 import { getTenantAccessToken } from '../utils/token.js';
 import { chatWithGpt } from '../utils/openai.js';
 
