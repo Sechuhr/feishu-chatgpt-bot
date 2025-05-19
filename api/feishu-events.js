@@ -10,20 +10,24 @@ export default async function handler(req, res) {
 
   const { type, challenge, event } = req.body;
 
+  // 打印完整请求体，方便调试
   console.log('收到飞书事件请求体:', JSON.stringify(req.body, null, 2));
 
+  // 事件订阅URL验证
   if (type === 'url_verification') {
-    console.log('收到飞书url_verification请求，返回challenge');
+    console.log('收到url_verification，返回challenge');
     return res.status(200).json({ challenge });
   }
 
+  // 处理飞书消息事件，注意访问 event.event.message
   if (type === 'event_callback' && event && event.event && event.event.message) {
     const msg = event.event.message;
+
     let text = '';
     try {
       text = JSON.parse(msg.content).text;
-    } catch (parseErr) {
-      console.error('解析消息内容失败，content:', msg.content, parseErr);
+    } catch (err) {
+      console.error('解析消息内容失败，content:', msg.content, err);
       text = '[消息内容格式异常]';
     }
     console.log('收到消息文本:', text);
