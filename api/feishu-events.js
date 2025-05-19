@@ -1,44 +1,27 @@
 // api/feishu-events.js
 import { getTenantAccessToken } from '../utils/token.js';
 
-  // 从飞书事件体中获取 chat_id
-
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).send('Method Not Allowed');
   }
 
-  // 安全校验，防止空请求
   if (!req.body || !req.body.event || !req.body.event.message) {
     console.log('请求体缺少 event 或 message');
     return res.status(200).send('ok');
   }
 
-  // 从飞书事件体中获取 chat_id
-  const chatId = req.body.event.message.chat_id;
-  const messageText = (() => {
-    try {
-      return JSON.parse(req.body.event.message.content).text;
-    } catch {
-      return '[解析消息内容失败]';
-    }
-  })();
+  const msg = req.body.event.message;
+  const chatId = msg.chat_id;
+  let messageText = '';
+  try {
+    messageText = JSON.parse(msg.content).text;
+  } catch {
+    messageText = '[解析消息内容失败]';
+  }
 
   console.log('拿到的 chat_id:', chatId);
   console.log('收到消息内容:', messageText);
-
-  // 这里你可以加代码调用飞书发送接口，给 chatId 回复消息
-
-  res.status(200).send('ok');
-}
-
-  // 从飞书事件体中获取 chat_id
-
-export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
-
-  const msg = req.body?.event?.message;
-  if (!msg) return res.status(200).send('ok');
 
   const reply = '机器人测试回复';
 
@@ -52,13 +35,10 @@ export default async function handler(req, res) {
 
   const payload = {
     receive_id_type: 'chat_id',
-    receive_id: msg.chat_id,
+    receive_id: chatId,
     msg_type: 'text',
     content: JSON.stringify({ text: reply }),
   };
-
-  const bodyStr = JSON.stringify(payload);
-  console.log('发送请求体:', bodyStr);
 
   try {
     const response = await fetch('https://open.feishu.cn/open-apis/im/v1/messages', {
@@ -68,7 +48,7 @@ export default async function handler(req, res) {
         Accept: 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: bodyStr,
+      body: JSON.stringify(payload),
     });
 
     const text = await response.text();
