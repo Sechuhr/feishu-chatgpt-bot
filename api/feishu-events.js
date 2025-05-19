@@ -37,7 +37,7 @@ export default async function handler(req, res) {
     receive_id_type: 'chat_id',
     receive_id: chatId,
     msg_type: 'text',
-    content: JSON.stringify({ text: reply }),
+    content: { text: reply },  // 这里直接对象，别用 JSON.stringify
   };
 
   try {
@@ -48,7 +48,7 @@ export default async function handler(req, res) {
         Accept: 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(payload),  // 整体序列化
     });
 
     const text = await response.text();
