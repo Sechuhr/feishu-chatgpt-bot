@@ -6,14 +6,14 @@ export async function chatWithGpt(prompt) {
     const response = await axios.post(
       'https://api.openai.com/v1/chat/completions',
       {
-        model: 'gpt-3.5-turbo',  // 修改为正确模型名
-        messages: [{ role: 'user', content: prompt }]
+        model: 'gpt-4o-mini',  // 更新为您指定的模型名
+        messages: [{ role: 'user', content: prompt }],
       },
       {
         headers: {
           Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+        },
       }
     );
 
