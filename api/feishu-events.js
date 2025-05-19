@@ -53,7 +53,7 @@ export default async function handler(req, res) {
           Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
-          receive_id_type: 'chat_id',   // 必须且正确的字段
+          receive_id_type: 'chat_id',   // 这里必须是字符串 'chat_id'
           receive_id: msg.chat_id,
           msg_type: 'text',
           content: JSON.stringify({ text: reply })
