@@ -10,38 +10,25 @@ export default async function handler(req, res) {
 
   const { type, challenge, event } = req.body;
 
-  // 打印收到的完整请求体，方便调试
   console.log('收到飞书事件请求体:', JSON.stringify(req.body, null, 2));
 
-  // 飞书首次事件订阅验证
   if (type === 'url_verification') {
     console.log('收到飞书url_verification请求，返回challenge');
     return res.status(200).json({ challenge });
   }
 
-  // 处理事件回调
-  if (type === 'event_callback') {
-    if (!event) {
-      console.log('事件体中没有 event 字段');
-      return res.status(200).send('ok');
-    }
-
-    if (!event.message) {
-      console.log('事件体中没有 message 字段，事件类型:', event.event_type || '未知');
-      return res.status(200).send('ok');
-    }
-
-    // 处理消息事件
+  if (type === 'event_callback' && event && event.event && event.event.message) {
+    const msg = event.event.message;
+    let text = '';
     try {
-      let text = '';
-      try {
-        text = JSON.parse(event.message.content).text;
-      } catch (parseErr) {
-        console.error('解析消息内容失败，content:', event.message.content, parseErr);
-        text = '[消息内容格式异常]';
-      }
-      console.log('收到飞书消息内容:', text);
+      text = JSON.parse(msg.content).text;
+    } catch (parseErr) {
+      console.error('解析消息内容失败，content:', msg.content, parseErr);
+      text = '[消息内容格式异常]';
+    }
+    console.log('收到消息文本:', text);
 
+    try {
       const reply = await chatWithGpt(text);
       console.log('ChatGPT回复内容:', reply);
 
@@ -56,7 +43,7 @@ export default async function handler(req, res) {
         },
         body: JSON.stringify({
           receive_id_type: 'chat_id',
-          receive_id: event.message.chat_id,
+          receive_id: msg.chat_id,
           msg_type: 'text',
           content: JSON.stringify({ text: reply })
         })
