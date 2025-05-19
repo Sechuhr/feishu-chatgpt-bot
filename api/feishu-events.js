@@ -7,7 +7,6 @@ export default async function handler(req, res) {
   const msg = req.body?.event?.message;
   if (!msg) return res.status(200).send('ok');
 
-  // 固定回复，避免调用GPT，方便测试飞书消息发送流程是否正常
   const reply = '机器人测试回复';
 
   let token = '';
@@ -19,7 +18,7 @@ export default async function handler(req, res) {
   }
 
   const payload = {
-    receive_id_type: 'chat_id',    // 必须是字符串，且全部小写
+    receive_id_type: 'chat_id',
     receive_id: msg.chat_id,
     msg_type: 'text',
     content: JSON.stringify({ text: reply }),
