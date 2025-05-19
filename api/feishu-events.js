@@ -7,12 +7,10 @@ export default async function handler(req, res) {
     return res.status(405).send('Method Not Allowed');
   }
 
-  const body = req.body;
+  const { header, event, challenge } = req.body;
+  const type = header?.event_type || '';
 
-  const type = body.header?.event_type || '';
-  const challenge = body.challenge || '';
-
-  console.log('收到请求体:', JSON.stringify(body, null, 2));
+  console.log('收到请求体:', JSON.stringify(req.body, null, 2));
   console.log('事件类型:', type);
 
   if (type === 'url_verification') {
@@ -20,14 +18,12 @@ export default async function handler(req, res) {
   }
 
   if (type === 'im.message.receive_v1') {
-    const event = body.event;
-
-    if (!event || !event.message) {
+    if (!event?.message) {
+      console.log('缺少 message 字段，忽略');
       return res.status(200).send('ok');
     }
 
     const msg = event.message;
-
     let text = '';
     try {
       text = JSON.parse(msg.content).text || '';
@@ -41,17 +37,15 @@ export default async function handler(req, res) {
     try {
       reply = await chatWithGpt(text);
     } catch (err) {
-      console.error('ChatGPT请求失败:', err);
+      console.error('调用 ChatGPT 失败:', err);
       reply = 'ChatGPT 暂时无法回答，请稍后再试。';
     }
     console.log('ChatGPT 回复:', reply);
 
-    // 获取飞书 token
     const token = await getTenantAccessToken();
 
-    // 注意这里body结构，保证无任何多余空格或类型错误
     const payload = {
-      receive_id_type: 'chat_id',    // **必须字符串且全部小写**
+      receive_id_type: 'chat_id',
       receive_id: msg.chat_id,
       msg_type: 'text',
       content: JSON.stringify({ text: reply }),
@@ -59,11 +53,11 @@ export default async function handler(req, res) {
 
     console.log('发送飞书消息请求体:', JSON.stringify(payload));
 
-    // 发送请求
     const sendRes = await fetch('https://open.feishu.cn/open-apis/im/v1/messages', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',  // **必须准确**
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(payload),
@@ -71,13 +65,14 @@ export default async function handler(req, res) {
 
     if (!sendRes.ok) {
       const errText = await sendRes.text();
-      console.error('发送飞书消息失败，状态码:', sendRes.status, '响应:', errText);
+      console.error('发送飞书消息失败，状态码:', sendRes.status, '响应内容:', errText);
     } else {
-      console.log('消息发送成功');
+      console.log('发送飞书消息成功');
     }
 
     return res.status(200).send('ok');
   }
 
+  console.log('非关注事件，忽略');
   return res.status(200).send('ok');
 }
