@@ -10,12 +10,28 @@ export default async function handler(req, res) {
 
   const { type, challenge, event } = req.body;
 
+  // 打印收到的完整请求体，方便调试
+  console.log('收到飞书事件请求体:', JSON.stringify(req.body, null, 2));
+
+  // 飞书首次事件订阅验证
   if (type === 'url_verification') {
     console.log('收到飞书url_verification请求，返回challenge');
     return res.status(200).json({ challenge });
   }
 
-  if (type === 'event_callback' && event && event.message) {
+  // 处理事件回调
+  if (type === 'event_callback') {
+    if (!event) {
+      console.log('事件体中没有 event 字段');
+      return res.status(200).send('ok');
+    }
+
+    if (!event.message) {
+      console.log('事件体中没有 message 字段，事件类型:', event.event_type || '未知');
+      return res.status(200).send('ok');
+    }
+
+    // 处理消息事件
     try {
       let text = '';
       try {
