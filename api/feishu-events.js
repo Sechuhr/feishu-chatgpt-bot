@@ -1,5 +1,4 @@
 // api/feishu-events.js
-import fetch from 'node-fetch'; // 需要安装 node-fetch: npm install node-fetch
 import { getTenantAccessToken } from '../utils/token.js';
 import { chatWithGpt } from '../utils/openai.js';
 
