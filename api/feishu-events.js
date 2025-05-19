@@ -8,20 +8,27 @@ export default async function handler(req, res) {
     return res.status(405).send('Method Not Allowed');
   }
 
-  const { type, challenge, event } = req.body;
+  const body = req.body;
 
-  // 打印完整请求体，方便调试
-  console.log('收到飞书事件请求体:', JSON.stringify(req.body, null, 2));
+  // 全量日志打印，便于排查事件结构
+  console.log('收到请求体:', JSON.stringify(body, null, 2));
+  console.log('type:', body.type);
+  console.log('event:', JSON.stringify(body.event, null, 2));
+  console.log('event.event:', JSON.stringify(body.event?.event, null, 2));
+  console.log('event.event.message:', JSON.stringify(body.event?.event?.message, null, 2));
 
-  // 事件订阅URL验证
-  if (type === 'url_verification') {
+  if (body.type === 'url_verification') {
     console.log('收到url_verification，返回challenge');
-    return res.status(200).json({ challenge });
+    return res.status(200).json({ challenge: body.challenge });
   }
 
-  // 处理飞书消息事件，注意访问 event.event.message
-  if (type === 'event_callback' && event && event.event && event.event.message) {
-    const msg = event.event.message;
+  if (
+    body.type === 'event_callback' &&
+    body.event &&
+    body.event.event &&
+    body.event.event.message
+  ) {
+    const msg = body.event.event.message;
 
     let text = '';
     try {
