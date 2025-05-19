@@ -1,6 +1,39 @@
 // api/feishu-events.js
 import { getTenantAccessToken } from '../utils/token.js';
 
+  // 从飞书事件体中获取 chat_id
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).send('Method Not Allowed');
+  }
+
+  // 安全校验，防止空请求
+  if (!req.body || !req.body.event || !req.body.event.message) {
+    console.log('请求体缺少 event 或 message');
+    return res.status(200).send('ok');
+  }
+
+  // 从飞书事件体中获取 chat_id
+  const chatId = req.body.event.message.chat_id;
+  const messageText = (() => {
+    try {
+      return JSON.parse(req.body.event.message.content).text;
+    } catch {
+      return '[解析消息内容失败]';
+    }
+  })();
+
+  console.log('拿到的 chat_id:', chatId);
+  console.log('收到消息内容:', messageText);
+
+  // 这里你可以加代码调用飞书发送接口，给 chatId 回复消息
+
+  res.status(200).send('ok');
+}
+
+  // 从飞书事件体中获取 chat_id
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
