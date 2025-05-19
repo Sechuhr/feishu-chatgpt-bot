@@ -1,4 +1,4 @@
-// api/feishu-events.jsss
+// api/feishu-events.js
 import { getTenantAccessToken } from '../utils/token.js';
 import { chatWithGpt } from '../utils/openai.js';
 
@@ -9,7 +9,6 @@ export default async function handler(req, res) {
   }
 
   const body = req.body;
-
   const type = body.header?.event_type || '';
   const challenge = body.challenge || '';
 
@@ -23,7 +22,7 @@ export default async function handler(req, res) {
   if (type === 'im.message.receive_v1') {
     const event = body.event;
 
-    if (!event || !event.message) {
+    if (!event?.message) {
       console.log('事件体缺少 message 字段，忽略');
       return res.status(200).send('ok');
     }
@@ -34,7 +33,7 @@ export default async function handler(req, res) {
     try {
       text = JSON.parse(msg.content).text || '';
     } catch (e) {
-      console.error('解析消息内容失败，content:', msg.content, e);
+      console.error('消息内容解析失败', e);
       text = '[消息格式异常]';
     }
     console.log('收到消息文本:', text);
@@ -47,7 +46,7 @@ export default async function handler(req, res) {
       console.log('Token 前10字符:', token.slice(0, 10), '...');
 
       const payload = {
-        receive_id_type: 'chat_id',
+        receive_id_type: 'chat_id',  // 必须是字符串，且大小写准确
         receive_id: msg.chat_id,
         msg_type: 'text',
         content: JSON.stringify({ text: reply }),
@@ -76,6 +75,7 @@ export default async function handler(req, res) {
     return res.status(200).send('ok');
   }
 
-  console.log('非关注事件，忽略');
+  console.log('非关注事件或格式异常，忽略');
   return res.status(200).send('ok');
 }
+
