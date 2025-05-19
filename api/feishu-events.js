@@ -1,70 +1,53 @@
+// api/feishu-events.js
 import { getTenantAccessToken } from '../utils/token.js';
-import { chatWithGpt } from '../utils/openai.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
-  const { header, event, challenge } = req.body;
-  const type = header?.event_type || '';
+  const msg = req.body?.event?.message;
+  if (!msg) return res.status(200).send('ok');
 
-  if (type === 'url_verification') {
-    return res.status(200).json({ challenge });
+  // 固定回复，避免调用GPT，方便测试飞书消息发送流程是否正常
+  const reply = '机器人测试回复';
+
+  let token = '';
+  try {
+    token = await getTenantAccessToken();
+  } catch (err) {
+    console.error('获取飞书token失败:', err);
+    return res.status(500).send('获取token失败');
   }
 
-  if (type === 'im.message.receive_v1') {
-    if (!event?.message) return res.status(200).send('ok');
+  const payload = {
+    receive_id_type: 'chat_id',    // 必须是字符串，且全部小写
+    receive_id: msg.chat_id,
+    msg_type: 'text',
+    content: JSON.stringify({ text: reply }),
+  };
 
-    const msg = event.message;
+  const bodyStr = JSON.stringify(payload);
+  console.log('发送请求体:', bodyStr);
 
-    // 解析用户消息文本
-    let text = '';
-    try {
-      text = JSON.parse(msg.content).text || '';
-    } catch {
-      text = '[消息格式异常]';
-    }
-
-    // 调用 GPT 获取回复
-    let reply = '';
-    try {
-      reply = await chatWithGpt(text);
-    } catch (err) {
-      console.error('调用 GPT 失败:', err);
-      reply = 'ChatGPT 暂时无法回答，请稍后再试。';
-    }
-
-    // 获取飞书租户访问令牌
-    const token = await getTenantAccessToken();
-
-    // 构造飞书消息请求体
-    const payload = {
-      receive_id_type: 'chat_id',
-      receive_id: msg.chat_id,
-      msg_type: 'text',
-      content: JSON.stringify({ text: reply }),
-    };
-
-    // 发送消息给飞书
-    const sendRes = await fetch('https://open.feishu.cn/open-apis/im/v1/messages', {
+  try {
+    const response = await fetch('https://open.feishu.cn/open-apis/im/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(payload),
+      body: bodyStr,
     });
 
-    if (!sendRes.ok) {
-      const errText = await sendRes.text();
-      console.error('飞书发送消息失败，状态码:', sendRes.status, '响应内容:', errText);
+    const text = await response.text();
+    if (!response.ok) {
+      console.error('飞书发送消息失败，状态码:', response.status, '响应:', text);
     } else {
-      console.log('飞书发送消息成功');
+      console.log('飞书发送消息成功:', text);
     }
-
-    return res.status(200).send('ok');
+  } catch (err) {
+    console.error('飞书发送消息异常:', err);
   }
 
   return res.status(200).send('ok');
 }
-
