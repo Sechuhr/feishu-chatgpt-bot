@@ -34,21 +34,23 @@ export default async function handler(req, res) {
   }
 
   const payload = {
-    receive_id_type: 'chat_id',
+    receive_id_type: "chat_id",
     receive_id: chatId,
-    msg_type: 'text',
-    content: { text: reply },
+    msg_type: "text",
+    content: { text: reply }
   };
+
+  console.log('Payload to send:', JSON.stringify(payload));
 
   try {
     const response = await fetch('https://open.feishu.cn/open-apis/im/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(payload)
     });
 
     const text = await response.text();
