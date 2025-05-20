@@ -16,7 +16,7 @@ export default async function handler(req, res) {
   let messageText = '';
   try {
     messageText = JSON.parse(msg.content).text;
-  } catch {
+  } catch (err) {
     messageText = '[解析消息内容失败]';
   }
 
